@@ -81,7 +81,7 @@ jobs:
             lib32readline-dev lib32z1-dev libelf-dev liblz4-tool \
             libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils \
             lz4 pngcrush rsync schedtool squashfs-tools unzip \
-            xsltproc zip zlib1g-dev openjdk-11-jdk-headless
+            xsltproc zip zlib1g-dev openjdk-11-jdk-headless jq
           java -version 2>&1
 
       - name: Set JDK 11
@@ -219,6 +219,86 @@ jobs:
           echo "=== avb info ==="
           "$SRC_DIR"/out/host/linux-x86/bin/avbtool info_image --image recovery.img || true
           echo "image_path=recovery.img" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to Gofile
+        id: gofile
+        if: success()
+        continue-on-error: true
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          SRV=$(curl -fsSL https://api.gofile.io/servers | jq -r '.data.servers[0].name // empty')
+          if [ -z "$SRV" ]; then
+            echo "::warning::Gofile returned no upload server"
+            exit 0
+          fi
+          HTTP=$(curl -sS -o /tmp/gofile.json -w '%{http_code}' \
+            -F "file=@recovery.img" "https://${SRV}.gofile.io/contents/uploadfile" || true)
+          URL=$(jq -r '.data.downloadPage // empty' /tmp/gofile.json 2>/dev/null || true)
+          if [ "$HTTP" != "200" ] || [ -z "$URL" ]; then
+            echo "::warning::Gofile upload failed (HTTP ${HTTP:-?})"
+            exit 0
+          fi
+          echo "gofile_url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Gofile: $URL"
+
+      - name: Upload to Telegram
+        if: success()
+        continue-on-error: true
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GOFILE_URL: ${{ steps.gofile.outputs.gofile_url }}
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          if [ -z "$TG_TOKEN" ] || [ -z "$TG_CHAT" ]; then
+            echo "::warning::TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is not configured"
+            exit 0
+          fi
+          SHA=$(sha256sum recovery.img | awk '{print $1}')
+          SIZE=$(stat -c%s recovery.img)
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          CAPTION=$(printf 'PBRP recovery - begonia\nSHA256: %s\nGofile: %s\nRun: %s' \
+            "$SHA" "${GOFILE_URL:-n/a}" "$RUN_URL")
+          API="https://api.telegram.org/bot${TG_TOKEN}"
+
+          if [ "$SIZE" -le 49000000 ]; then
+            curl -sS -o /tmp/tg.json \
+              -F "chat_id=${TG_CHAT}" \
+              -F "document=@recovery.img" \
+              --form-string "caption=${CAPTION}" \
+              "${API}/sendDocument" || true
+            if jq -e '.ok == true' /tmp/tg.json >/dev/null 2>&1; then
+              echo "Telegram: recovery.img sent as a document"
+              exit 0
+            fi
+            echo "::warning::Telegram sendDocument failed; sending a link instead"
+          fi
+
+          TEXT=$(printf 'PBRP recovery - begonia\nSHA256: %s\nGofile: %s\nRun: %s\nImage size: %s bytes' \
+            "$SHA" "${GOFILE_URL:-n/a}" "$RUN_URL" "$SIZE")
+          curl -sS -o /tmp/tg.json \
+            --data-urlencode "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=${TEXT}" \
+            "${API}/sendMessage" || true
+          if jq -e '.ok == true' /tmp/tg.json >/dev/null 2>&1; then
+            echo "Telegram: link sent"
+          else
+            echo "::warning::Telegram notification failed"
+          fi
+
+      - name: Notify Telegram on failure
+        if: failure()
+        continue-on-error: true
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TG_TOKEN" ] || [ -z "$TG_CHAT" ]; then exit 0; fi
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          curl -sS -o /tmp/tg.json \
+            --data-urlencode "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=PBRP begonia build FAILED: ${RUN_URL}" \
+            "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" || true
 
       - name: ccache stats
         if: always()
