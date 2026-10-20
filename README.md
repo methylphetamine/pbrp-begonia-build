@@ -11,7 +11,7 @@ Everything is derived from the device tree and PBRP sources published by
 
 | | |
 |---|---|
-| PBRP manifest | `PitchBlackRecoveryProject/manifest_pb` @ `android-12.1` |
+| PBRP manifest | `PitchBlackRecoveryProject/manifest_pb` @ `android-12.1` (branch tip, not pinned) |
 | Recovery source | `PitchBlackRecoveryProject/android_bootable_recovery` @ `android-12.1` |
 | PBRP vendor config | `PitchBlackRecoveryProject/vendor_pb` @ `pb-12.1` |
 | Device tree | `methylphetamine/device_xiaomi_begonia-pbrp` @ `twrp-12.1` (fork of `SaiKrishna1504/device_xiaomi_begonia-pbrp`) |
@@ -35,12 +35,32 @@ Everything is derived from the device tree and PBRP sources published by
 2. Options:
    - `makefile` — default `pb_begonia-eng`
    - `build_target` — default `recoveryimage`
+   - `manifest_branch` — default `android-12.1`
    - `jobs` — default `4` (the runner has 4 vCPUs)
    - `ccache` — default `true`
    - `publish_release` — attach the image to a GitHub release
 3. When the job goes green, download `pbrp-begonia-recovery` from the run's
    **Artifacts** section. `recovery.img` is the file to flash to the
    `recovery` partition.
+
+## Updating PBRP source
+
+`android-12.1` is PBRP's newest maintained branch: `manifest_pb` was last
+updated there in September 2025, while `android-14.0` has been untouched
+since September 2024 and is not compatible with this 12.1 begonia tree.
+
+Every workflow run does a fresh `repo init` / `repo sync` of the
+`manifest_branch` tip, so re-running the workflow is enough to pick up new
+PBRP commits. The **Record PBRP source revisions** step prints the exact
+commits used by that run. Tips verified on 2026-10-20:
+
+| Project | Commit | Date |
+|---|---|---|
+| `manifest_pb` | `59ff14c8ad` | 2025-09-11 |
+| `android_bootable_recovery` | `c3ee88af57` | 2025-11-20 |
+| `vendor_pb` (`pb-12.1`) | `31bf0d4cd6` | 2024-12-08 |
+| `android_build` | `27af0ea018` | 2024-01-24 |
+| `android_system_core` | `ac4f36c7eb` | 2025-02-22 |
 
 ## Upstream breakage worked around
 

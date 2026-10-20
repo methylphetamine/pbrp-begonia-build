@@ -11,6 +11,10 @@ on:
         description: 'Make target'
         required: false
         default: 'recoveryimage'
+      manifest_branch:
+        description: 'PBRP manifest branch'
+        required: false
+        default: 'android-12.1'
       jobs:
         description: 'Parallel make jobs'
         required: false
@@ -33,7 +37,7 @@ permissions:
 
 env:
   MANIFEST_URL: 'https://github.com/PitchBlackRecoveryProject/manifest_pb.git'
-  MANIFEST_BRANCH: 'android-12.1'
+  MANIFEST_BRANCH: ${{ github.event.inputs.manifest_branch || 'android-12.1' }}
   SRC_DIR: 'aosp'
   CCACHE_DIR: '${{ github.workspace }}/.ccache'
 
@@ -159,6 +163,16 @@ jobs:
           df -h /
           echo "--- device tree present? ---"
           ls device/xiaomi/begonia
+
+      - name: Record PBRP source revisions
+        run: |
+          cd "$SRC_DIR"
+          echo "=== PBRP manifest ==="
+          echo "branch: $MANIFEST_BRANCH"
+          git -C .repo/manifests log -1 --format='%H %cs %s'
+          echo "=== key project revisions ==="
+          repo forall bootable/recovery build/make build/soong system/core vendor/pb device/xiaomi/begonia \
+            -c 'printf "%-30s %s %s\n" "$REPO_PATH" "$(git rev-parse HEAD)" "$(git log -1 --format=%cs)"'
 
       - name: Trim disk before build
         run: |
