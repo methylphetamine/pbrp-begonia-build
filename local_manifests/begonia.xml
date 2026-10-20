@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+    <remote name="methyl" fetch="https://github.com/methylphetamine" />
+
+    <!-- The `pb` branch of PitchBlackRecoveryProject/Utils no longer exists;
+         the helper script it provided is not needed to build the image. -->
+    <remove-project name="vendor_utils" />
+
+    <project path="device/xiaomi/begonia"
+             name="device_xiaomi_begonia-pbrp"
+             remote="methyl"
+             revision="twrp-12.1"
+             clone-depth="1" />
+</manifest>
