@@ -62,6 +62,25 @@ commits used by that run. Tips verified on 2026-10-20:
 | `android_build` | `27af0ea018` | 2024-01-24 |
 | `android_system_core` | `ac4f36c7eb` | 2025-02-22 |
 
+## Publishing
+
+After a successful compile the workflow:
+
+1. uploads `recovery.img` as the `pbrp-begonia-recovery` Actions artifact;
+2. uploads it anonymously to Gofile and prints the download page;
+3. sends it to Telegram as a document when it is under Telegram's 50 MB bot
+   limit, otherwise sends the Gofile link and SHA-256.
+
+Telegram publishing uses two repository secrets:
+
+| Secret | Value |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | bot token from @BotFather |
+| `TELEGRAM_CHAT_ID` | target chat/channel ID (e.g. `-100...`) |
+
+Gofile needs no credentials. Both uploads are best-effort: a Gofile/Telegram
+outage does not fail the build, and the Actions artifact remains available.
+
 ## Upstream breakage worked around
 
 `manifest_pb/android-12.1/pbrp-default.xml` declares:
