@@ -9,6 +9,6 @@
     <project path="device/xiaomi/begonia"
              name="device_xiaomi_begonia-pbrp"
              remote="methyl"
-             revision="twrp-12.1"
+             revision="unified"
              clone-depth="1" />
 </manifest>
