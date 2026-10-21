@@ -191,6 +191,8 @@ jobs:
           BUILD_JOBS: ${{ inputs.jobs || '4' }}
           MAKEFILE_NAME: ${{ inputs.makefile || 'pb_begonia-eng' }}
           BUILD_TARGET: ${{ inputs.build_target || 'recoveryimage' }}
+          BUILD_USERNAME: methylphetamine
+          BUILD_HOSTNAME: poxproject
         run: |
           cd "$SRC_DIR"
           set -o pipefail
