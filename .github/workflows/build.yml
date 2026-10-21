@@ -196,7 +196,9 @@ jobs:
           set -o pipefail
           source build/envsetup.sh
           lunch "$MAKEFILE_NAME"
-          mka "$BUILD_TARGET" -j"$BUILD_JOBS" 2>&1 | tee build.log
+          mka "$BUILD_TARGET" -j"$BUILD_JOBS" \
+            BUILD_USERNAME=methylphetamine \
+            BUILD_HOSTNAME=poxproject 2>&1 | tee build.log
 
       - name: Locate and verify output image
         id: image
